@@ -5,10 +5,10 @@
 // Get these values from https://giscus.app after setting up your GitHub repository
 
 const GISCUS_CONFIG = {
-    repo: "YOUR-USERNAME/YOUR-REPO",           // e.g., "johndoe/philosophical-discussions"
-    repoId: "YOUR-REPO-ID",                     // Get from giscus.app
-    category: "General",                         // GitHub Discussions category name
-    categoryId: "YOUR-CATEGORY-ID",             // Get from giscus.app
+    repo: "Josh-VonNeumann/Philosophy-with-magnanimous",           // e.g., "johndoe/philosophical-discussions"
+    repoId: "R_kgDOQWClyw",                     // Get from giscus.app
+    category: "Announcements",                         // GitHub Discussions category name
+    categoryId: "DIC_kwDOQWCly84Cxz1l",             // Get from giscus.app
     mapping: "specific",                        // Use specific discussions
     strict: "0",
     reactionsEnabled: "1",
@@ -17,6 +17,8 @@ const GISCUS_CONFIG = {
     theme: "light",
     lang: "en"
 };
+
+
 
 // Initialize Giscus for each discussion
 function initializeGiscus() {
