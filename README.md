@@ -56,6 +56,21 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
+    match /comments/{commentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['discussionId', 'userId', 'userName', 'userPhotoURL', 'text', 'createdAt'])
+                    && request.resource.data.discussionId is string
+                    && request.resource.data.userId is string
+                    && request.resource.data.userName is string
+                    && request.resource.data.userPhotoURL is string
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 5000;
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.userId;
+    }
   }
 }
 ```
@@ -143,59 +158,15 @@ The site will open automatically in your browser at `http://localhost:8080`
   - View account info
   - Log out
 
-### 4. Set Up Discussion Forum (Optional but Recommended)
+### 4. Comments System
 
-The site includes a discussion forum where your friends can comment and discuss each post. It uses **Giscus**, a free commenting system powered by GitHub Discussions.
+Each discussion post includes a built-in comments section powered by Firebase. Your friends can:
+- Leave comments on any discussion post
+- See real-time updates when new comments are added
+- Delete their own comments
+- View author names and profile pictures
 
-#### Step-by-Step Setup:
-
-**A. Create a GitHub Account & Repository**
-
-1. If you don't have one, create a free account at [github.com](https://github.com)
-2. Create a new **public** repository (you can name it `philosophical-discussions`)
-3. Upload all your website files to this repository
-
-**B. Enable GitHub Discussions**
-
-1. Go to your repository on GitHub
-2. Click **Settings** tab
-3. Scroll down to **Features** section
-4. Check the box for **Discussions**
-5. Go to the **Discussions** tab that now appears
-6. Create a new category called "General" (or any name you prefer)
-
-**C. Install Giscus App**
-
-1. Visit [https://github.com/apps/giscus](https://github.com/apps/giscus)
-2. Click **Install**
-3. Select your repository and grant access
-
-**D. Configure Giscus**
-
-1. Go to [https://giscus.app](https://giscus.app)
-2. Enter your repository in the format: `your-username/your-repo-name`
-3. The tool will verify your repository
-4. Under "Discussion Category", select "General" (or your category name)
-5. Scroll down to the **Configuration** section
-6. Copy the values shown (you'll need `data-repo-id` and `data-category-id`)
-
-**E. Update Your Configuration File**
-
-Open `giscus-config.js` and replace the placeholder values:
-
-```javascript
-const GISCUS_CONFIG = {
-    repo: "your-username/philosophical-discussions",     // Your repo
-    repoId: "R_xxxxxxxxxxxxx",                          // From giscus.app
-    category: "General",                                 // Your category name
-    categoryId: "DIC_xxxxxxxxxxxxx",                    // From giscus.app
-    // ... rest stays the same
-};
-```
-
-**That's it!** When you deploy your site, each discussion post will have a comment section where you and your friends can engage in thoughtful dialogue.
-
-**Note:** Comments will be stored as GitHub Discussions in your repository. This is free, doesn't require a database, and works perfectly with static sites.
+Comments are stored securely in your Firebase Firestore database with the security rules configured in Section 1-C above.
 
 ## Deployment Instructions
 
@@ -247,8 +218,8 @@ philosophical-discussions/
 ├── admin.js            # Create post functionality
 ├── discussions.js      # Load and display posts
 ├── profile.js          # Profile management functionality
+├── comments.js         # Comments system functionality
 ├── firebase-config.js  # Firebase configuration
-├── giscus-config.js    # Discussion forum configuration
 └── README.md           # This file
 ```
 

@@ -216,7 +216,7 @@ function createDiscussionHTML(discussion, docId) {
             </div>
             <div class="comments-section">
                 <h3 class="comments-title">Discussion & Comments</h3>
-                <div class="giscus" data-discussion-title="${escapeHtml(title)}"></div>
+                <div class="firebase-comments" data-discussion-id="${docId}"></div>
             </div>
         </article>
     `;
@@ -274,9 +274,9 @@ function loadDiscussions() {
 
         discussionsContainer.innerHTML = discussionsHTML;
 
-        // Reinitialize Giscus for new comments sections
-        if (typeof initializeGiscus === 'function') {
-            initializeGiscus();
+        // Initialize Firebase comments for all discussions
+        if (typeof initializeComments === 'function') {
+            initializeComments();
         }
     }, (error) => {
         console.error("Error loading discussions:", error);
