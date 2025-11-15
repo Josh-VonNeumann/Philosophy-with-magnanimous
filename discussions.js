@@ -22,6 +22,83 @@ try {
     console.error("Firebase initialization error:", error);
 }
 
+// Profile listener management system for real-time updates
+const profileListeners = new Map(); // uid -> unsubscribe function
+const profileCache = new Map();     // uid -> {displayName, photoURL}
+const profileUIElements = new Map(); // uid -> Set of DOM elements
+
+// Subscribe to a user's profile changes
+function subscribeToUserProfile(uid) {
+    if (!uid || profileListeners.has(uid)) return; // Already subscribed or invalid UID
+
+    const unsubscribe = onSnapshot(doc(db, 'users', uid), (docSnap) => {
+        if (docSnap.exists()) {
+            const profileData = docSnap.data();
+            profileCache.set(uid, profileData);
+            console.log(`Profile updated for UID ${uid}:`, profileData.displayName);
+            updateProfileUIElements(uid, profileData);
+        }
+    }, (error) => {
+        console.warn(`Error listening to profile for UID ${uid}:`, error);
+    });
+
+    profileListeners.set(uid, unsubscribe);
+}
+
+// Update all DOM elements for a specific user when their profile changes
+function updateProfileUIElements(uid, profileData) {
+    const elements = profileUIElements.get(uid);
+    if (!elements || elements.size === 0) return;
+
+    elements.forEach(element => {
+        // Update avatar images
+        const avatar = element.querySelector('.author-avatar, .comment-avatar');
+        if (avatar) {
+            avatar.src = profileData.photoURL;
+            avatar.alt = profileData.displayName;
+        }
+
+        // Update name spans
+        const nameSpan = element.querySelector('.author-name, .comment-author');
+        if (nameSpan) {
+            nameSpan.textContent = profileData.displayName;
+        }
+    });
+
+    console.log(`Updated ${elements.size} UI element(s) for ${profileData.displayName}`);
+}
+
+// Register all profile elements and set up listeners
+function registerProfileElements() {
+    // Clear previous registrations
+    profileUIElements.clear();
+
+    // Find all elements with data-user-uid attribute
+    document.querySelectorAll('[data-user-uid]').forEach(element => {
+        const uid = element.getAttribute('data-user-uid');
+        if (!uid) return;
+
+        // Add element to tracking map
+        if (!profileUIElements.has(uid)) {
+            profileUIElements.set(uid, new Set());
+        }
+        profileUIElements.get(uid).add(element);
+
+        // Subscribe to profile updates for this user
+        subscribeToUserProfile(uid);
+    });
+
+    console.log(`Registered ${profileUIElements.size} unique user profiles for real-time updates`);
+}
+
+// Cleanup profile listeners (call when leaving page)
+function cleanupProfileListeners() {
+    profileListeners.forEach(unsubscribe => unsubscribe());
+    profileListeners.clear();
+    profileUIElements.clear();
+    profileCache.clear();
+}
+
 // Show loading indicator
 function showLoading() {
     const container = document.getElementById('dynamicDiscussions');
@@ -137,7 +214,7 @@ function createUserMenu(profile) {
     const userMenu = document.createElement('div');
     userMenu.className = 'user-menu';
     userMenu.innerHTML = `
-        <img src="${profile.photoURL}" alt="${profile.displayName}" class="user-avatar">
+        <img src="${profile.photoURL}" alt="${profile.displayName}" class="user-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(profile.displayName)}&background=667eea&color=fff&size=200'">
         <span class="user-name">${escapeHtml(profile.displayName)}</span>
         <div class="user-dropdown">
             <a href="profile.html">My Profile</a>
@@ -174,26 +251,47 @@ function formatDate(timestamp) {
     return 'Posted on ' + date.toLocaleDateString('en-US', options);
 }
 
-// Create discussion HTML
-function createDiscussionHTML(discussion, docId) {
+// Create discussion HTML with current author profile
+async function createDiscussionHTML(discussion, docId) {
     const { title, paragraphs, createdAt, timestamp, author } = discussion;
 
     const paragraphsHTML = paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('\n                ');
 
+    // Fetch current author profile if author UID exists
+    let currentAuthor = author; // Default to stored author data
+    if (author && author.uid) {
+        try {
+            const authorDoc = await getDoc(doc(db, 'users', author.uid));
+            if (authorDoc.exists()) {
+                const authorData = authorDoc.data();
+                // Use current profile data
+                currentAuthor = {
+                    uid: author.uid,
+                    displayName: authorData.displayName,
+                    photoURL: authorData.photoURL
+                };
+                console.log(`Updated author profile for post "${title}":`, currentAuthor.displayName);
+            }
+        } catch (error) {
+            console.warn('Could not fetch current author profile, using stored data:', error);
+            // Fall back to stored author data
+        }
+    }
+
     // Create author section if author info exists
     let authorHTML = '';
-    if (author && author.displayName) {
+    if (currentAuthor && currentAuthor.displayName) {
         authorHTML = `
-            <div class="post-author">
-                <img src="${author.photoURL}" alt="${escapeHtml(author.displayName)}" class="author-avatar">
-                <span class="author-name">${escapeHtml(author.displayName)}</span>
+            <div class="post-author" data-user-uid="${currentAuthor.uid}">
+                <img src="${currentAuthor.photoURL}" alt="${escapeHtml(currentAuthor.displayName)}" class="author-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(currentAuthor.displayName)}&background=667eea&color=fff&size=200'">
+                <span class="author-name">${escapeHtml(currentAuthor.displayName)}</span>
             </div>
         `;
     }
 
     // Add delete button if current user is the author
     let deleteButtonHTML = '';
-    if (currentUser && author && author.uid === currentUser.uid) {
+    if (currentUser && currentAuthor && currentAuthor.uid === currentUser.uid) {
         deleteButtonHTML = `
             <button class="btn-delete-post" data-doc-id="${docId}" onclick="deletePost('${docId}', '${escapeHtml(title)}')">
                 Delete Post
@@ -255,7 +353,7 @@ function loadDiscussions() {
     const q = query(collection(db, 'discussions'), orderBy('createdAt', 'desc'));
 
     // Listen for real-time updates
-    onSnapshot(q, (querySnapshot) => {
+    onSnapshot(q, async (querySnapshot) => {
         if (querySnapshot.empty) {
             discussionsContainer.innerHTML = `
                 <div class="empty-state">
@@ -267,10 +365,15 @@ function loadDiscussions() {
             return;
         }
 
-        let discussionsHTML = '';
+        // Create array of promises to fetch all discussion HTML with current author profiles
+        const discussionPromises = [];
         querySnapshot.forEach((doc) => {
-            discussionsHTML += createDiscussionHTML(doc.data(), doc.id);
+            discussionPromises.push(createDiscussionHTML(doc.data(), doc.id));
         });
+
+        // Wait for all discussions to be rendered with current author data
+        const discussionsHTMLArray = await Promise.all(discussionPromises);
+        const discussionsHTML = discussionsHTMLArray.join('');
 
         discussionsContainer.innerHTML = discussionsHTML;
 
@@ -278,6 +381,12 @@ function loadDiscussions() {
         if (typeof initializeComments === 'function') {
             initializeComments();
         }
+
+        // Register profile elements for real-time updates
+        // Use setTimeout to allow comments to render first
+        setTimeout(() => {
+            registerProfileElements();
+        }, 100);
     }, (error) => {
         console.error("Error loading discussions:", error);
         discussionsContainer.innerHTML = `
@@ -304,3 +413,6 @@ window.deletePost = async function(docId, title) {
         alert('Error deleting post: ' + error.message);
     }
 };
+
+// Cleanup profile listeners when navigating away
+window.addEventListener('beforeunload', cleanupProfileListeners);

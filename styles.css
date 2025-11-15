@@ -849,6 +849,64 @@ footer p {
     font-size: 0.9rem;
 }
 
+.profile-picture-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #667eea;
+    margin: 10px 0;
+}
+
+.preview-label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 15px 0 10px 0;
+    font-size: 0.9rem;
+}
+
+.preview-status {
+    font-size: 0.85rem;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.preview-status.loading {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.preview-status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.preview-status.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.preview-status.error {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 0.85rem;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #ffe5e5;
+    border-radius: 6px;
+    display: block;
+}
+
+.error-message:empty {
+    display: none;
+}
+
 .profile-input {
     width: 100%;
     padding: 12px;

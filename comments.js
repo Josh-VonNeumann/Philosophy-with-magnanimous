@@ -61,9 +61,28 @@ function formatCommentTime(timestamp) {
     return date.toLocaleDateString('en-US', options);
 }
 
-// Create comment HTML
-function createCommentHTML(comment, commentId) {
+// Create comment HTML with current author profile
+async function createCommentHTML(comment, commentId) {
     const { text, userName, userPhotoURL, userId, createdAt } = comment;
+
+    // Fetch current author profile if userId exists
+    let currentUserName = userName;
+    let currentUserPhotoURL = userPhotoURL;
+
+    if (userId) {
+        try {
+            const userDoc = await getDoc(doc(db, 'users', userId));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                // Use current profile data
+                currentUserName = userData.displayName || userName;
+                currentUserPhotoURL = userData.photoURL || userPhotoURL;
+            }
+        } catch (error) {
+            console.warn('Could not fetch current commenter profile, using stored data:', error);
+            // Fall back to stored data
+        }
+    }
 
     // Check if current user is the comment author
     const isAuthor = currentUser && userId === currentUser.uid;
@@ -75,10 +94,10 @@ function createCommentHTML(comment, commentId) {
 
     return `
         <div class="comment" data-comment-id="${commentId}">
-            <div class="comment-header">
-                <img src="${userPhotoURL}" alt="${escapeHtml(userName)}" class="comment-avatar">
+            <div class="comment-header" data-user-uid="${userId}">
+                <img src="${currentUserPhotoURL}" alt="${escapeHtml(currentUserName)}" class="comment-avatar" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserName)}&background=667eea&color=fff&size=200'">
                 <div class="comment-meta">
-                    <span class="comment-author">${escapeHtml(userName)}</span>
+                    <span class="comment-author">${escapeHtml(currentUserName)}</span>
                     <span class="comment-time">${formatCommentTime(createdAt)}</span>
                 </div>
                 ${deleteButtonHTML}
@@ -102,7 +121,7 @@ function loadCommentsForDiscussion(discussionId, container) {
     );
 
     // Listen for real-time updates
-    onSnapshot(q, (querySnapshot) => {
+    onSnapshot(q, async (querySnapshot) => {
         const commentsListDiv = container.querySelector('.comments-list');
         if (!commentsListDiv) return;
 
@@ -124,11 +143,13 @@ function loadCommentsForDiscussion(discussionId, container) {
             return timeA - timeB;
         });
 
-        // Generate HTML for sorted comments
-        let commentsHTML = '';
-        comments.forEach(comment => {
-            commentsHTML += createCommentHTML(comment.data, comment.id);
-        });
+        // Generate HTML for sorted comments with current author profiles
+        const commentPromises = comments.map(comment =>
+            createCommentHTML(comment.data, comment.id)
+        );
+
+        const commentsHTMLArray = await Promise.all(commentPromises);
+        const commentsHTML = commentsHTMLArray.join('');
 
         commentsListDiv.innerHTML = commentsHTML;
 

@@ -82,6 +82,135 @@ async function loadUserProfile(user) {
     }
 }
 
+// Validate image URL
+function validateImageURL(url) {
+    // Check if empty (allowed - will use default)
+    if (!url || url.trim() === '') {
+        return { valid: true, error: null };
+    }
+
+    // Check if HTTPS
+    if (!url.startsWith('https://')) {
+        return { valid: false, error: 'Image URL must use HTTPS (not HTTP)' };
+    }
+
+    // Check if valid URL format
+    try {
+        new URL(url);
+    } catch (e) {
+        return { valid: false, error: 'Invalid URL format' };
+    }
+
+    return { valid: true, error: null };
+}
+
+// Test if image actually loads
+function testImageURL(url) {
+    return new Promise((resolve, reject) => {
+        // Skip validation for Imgur URLs - they block CORS in preview but work in actual img tags
+        if (url.includes('imgur.com') || url.includes('i.imgur.com')) {
+            console.log('⚠️ Imgur URL detected - skipping preview test due to CORS restrictions');
+            console.log('The image will still work when saved to your profile');
+            resolve(true);
+            return;
+        }
+
+        const img = new Image();
+
+        img.onload = () => {
+            console.log('✓ Image loaded successfully:', url);
+            resolve(true);
+        };
+
+        img.onerror = (error) => {
+            console.error('✗ Image failed to load:', url);
+            console.error('Error details:', error);
+            console.log('Common causes: CORS restrictions, invalid URL, image doesn\'t exist, or network issues');
+            reject(new Error('Could not load image from URL'));
+        };
+
+        console.log('Testing image URL:', url);
+        img.src = url;
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            console.error('✗ Image load timeout after 10 seconds:', url);
+            reject(new Error('Image load timeout'));
+        }, 10000);
+    });
+}
+
+// Live preview handler
+// Live preview handler (only initialize if elements exist)
+const photoURLInput = document.getElementById('photoURL');
+const photoPreviewContainer = document.getElementById('photoPreviewContainer');
+const photoPreview = document.getElementById('photoPreview');
+const photoPreviewStatus = document.getElementById('photoPreviewStatus');
+const updatePhotoBtn = document.getElementById('updatePhotoBtn');
+const photoError = document.getElementById('photo-error');
+
+let previewTimeout;
+if (photoURLInput) {
+    photoURLInput.addEventListener('input', function() {
+    const url = this.value.trim();
+
+    // Clear previous timeout
+    clearTimeout(previewTimeout);
+
+    // Hide preview and error
+    photoPreviewContainer.style.display = 'none';
+    photoError.textContent = '';
+    updatePhotoBtn.disabled = true;
+
+    // If empty, allow (will use default)
+    if (!url) {
+        updatePhotoBtn.disabled = false;
+        return;
+    }
+
+    // Validate URL format first
+    const validation = validateImageURL(url);
+    if (!validation.valid) {
+        photoError.textContent = validation.error;
+        return;
+    }
+
+    // Show loading status
+    photoPreviewContainer.style.display = 'block';
+    photoPreviewStatus.textContent = 'Loading preview...';
+    photoPreviewStatus.className = 'preview-status loading';
+    photoPreview.style.display = 'none';
+
+    // Debounce image test (wait 500ms after user stops typing)
+    previewTimeout = setTimeout(async () => {
+        try {
+            await testImageURL(url);
+
+            // Special handling for Imgur URLs (they pass but might not preview)
+            if (url.includes('imgur.com') || url.includes('i.imgur.com')) {
+                photoPreview.src = url;
+                photoPreview.style.display = 'block';
+                photoPreviewStatus.textContent = '⚠️ Imgur URL accepted (preview may not work due to CORS)';
+                photoPreviewStatus.className = 'preview-status warning';
+                updatePhotoBtn.disabled = false;
+            } else {
+                // Image loaded successfully
+                photoPreview.src = url;
+                photoPreview.style.display = 'block';
+                photoPreviewStatus.textContent = '✓ Image loaded successfully';
+                photoPreviewStatus.className = 'preview-status success';
+                updatePhotoBtn.disabled = false;
+            }
+        } catch (error) {
+            photoPreview.style.display = 'none';
+            photoPreviewStatus.textContent = '✗ ' + error.message;
+            photoPreviewStatus.className = 'preview-status error';
+            photoError.textContent = 'Cannot load image from this URL. Please check the URL and try again.';
+        }
+    }, 500);
+    });
+}
+
 // Update profile picture
 document.getElementById('updatePhotoBtn').addEventListener('click', async function() {
     const photoURL = document.getElementById('photoURL').value.trim();
@@ -91,6 +220,7 @@ document.getElementById('updatePhotoBtn').addEventListener('click', async functi
     try {
         this.textContent = 'Updating...';
         this.disabled = true;
+        photoError.textContent = '';
 
         let finalPhotoURL = photoURL;
 
@@ -99,6 +229,25 @@ document.getElementById('updatePhotoBtn').addEventListener('click', async functi
             const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
             const displayName = userDoc.data().displayName;
             finalPhotoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=667eea&color=fff&size=200`;
+        } else {
+            // Validate URL one more time before saving
+            const validation = validateImageURL(photoURL);
+            if (!validation.valid) {
+                photoError.textContent = validation.error;
+                this.textContent = 'Update Photo';
+                this.disabled = false;
+                return;
+            }
+
+            // Test if image loads
+            try {
+                await testImageURL(photoURL);
+            } catch (error) {
+                photoError.textContent = 'Cannot load image from this URL. Please verify it works.';
+                this.textContent = 'Update Photo';
+                this.disabled = false;
+                return;
+            }
         }
 
         // Update in Firestore
@@ -109,14 +258,17 @@ document.getElementById('updatePhotoBtn').addEventListener('click', async functi
         // Update UI
         document.getElementById('currentProfilePic').src = finalPhotoURL;
 
+        // Hide preview
+        photoPreviewContainer.style.display = 'none';
+
         this.textContent = 'Updated!';
         setTimeout(() => {
             this.textContent = 'Update Photo';
-            this.disabled = false;
+            this.disabled = !photoURL; // Keep enabled if no URL (using default)
         }, 2000);
     } catch (error) {
         console.error("Error updating photo:", error);
-        alert('Error updating photo: ' + error.message);
+        photoError.textContent = 'Error updating photo: ' + error.message;
         this.textContent = 'Update Photo';
         this.disabled = false;
     }

@@ -30,11 +30,17 @@
                         <input
                             type="url"
                             id="photoURL"
-                            placeholder="Enter image URL (optional)"
+                            placeholder="Enter image URL (must be HTTPS)"
                             class="profile-input"
                         >
-                        <button id="updatePhotoBtn" class="btn-secondary">Update Photo</button>
-                        <p class="form-hint">Tip: Upload an image to a service like Imgur or use a Gravatar URL</p>
+                        <div id="photoPreviewContainer" style="display: none;">
+                            <p class="preview-label">Preview:</p>
+                            <img id="photoPreview" src="" alt="Preview" class="profile-picture-preview">
+                            <p id="photoPreviewStatus" class="preview-status"></p>
+                        </div>
+                        <button id="updatePhotoBtn" class="btn-secondary" disabled>Update Photo</button>
+                        <p id="photo-error" class="error-message"></p>
+                        <p class="form-hint">Tip: Upload an image to a service like Imgur or use a Gravatar URL. URL must be HTTPS.</p>
                     </div>
                 </div>
             </div>
