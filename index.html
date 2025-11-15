@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philosophical Discussions - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-box">
+            <h1>Philosophical Discussions</h1>
+            <p class="subtitle">A space for thoughtful discourse</p>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form">
+                <input
+                    type="email"
+                    id="loginEmail"
+                    placeholder="Email"
+                    required
+                    autocomplete="email"
+                >
+                <input
+                    type="password"
+                    id="loginPassword"
+                    placeholder="Password"
+                    required
+                    autocomplete="current-password"
+                >
+                <button type="submit" class="auth-button">Log In</button>
+                <p id="login-error" class="error-message"></p>
+            </form>
+
+            <div class="auth-divider">
+                <span>Don't have an account?</span>
+            </div>
+
+            <!-- Signup Form -->
+            <form id="signupForm" class="auth-form" style="display: none;">
+                <input
+                    type="text"
+                    id="signupName"
+                    placeholder="Display Name"
+                    required
+                    autocomplete="name"
+                >
+                <input
+                    type="email"
+                    id="signupEmail"
+                    placeholder="Email"
+                    required
+                    autocomplete="email"
+                >
+                <input
+                    type="password"
+                    id="signupPassword"
+                    placeholder="Password (min 6 characters)"
+                    required
+                    minlength="6"
+                    autocomplete="new-password"
+                >
+                <button type="submit" class="auth-button">Sign Up</button>
+                <p id="signup-error" class="error-message"></p>
+            </form>
+
+            <button id="toggleAuth" class="toggle-auth-button">Create an account</button>
+        </div>
+    </div>
+    <script type="module" src="auth.js"></script>
+</body>
+</html>

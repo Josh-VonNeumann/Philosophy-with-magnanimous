@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Philosophical Discussions</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>My Profile</h1>
+            <p class="tagline">Manage your account settings</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <nav class="admin-nav">
+            <a href="discussions.html" class="nav-link">← Back to Discussions</a>
+        </nav>
+
+        <div class="profile-container">
+            <!-- Profile Picture Section -->
+            <div class="profile-section">
+                <h2>Profile Picture</h2>
+                <div class="profile-picture-wrapper">
+                    <img id="currentProfilePic" src="" alt="Profile" class="profile-picture-large">
+                    <div class="profile-picture-info">
+                        <p>Your profile picture is generated from your initials.</p>
+                        <input
+                            type="url"
+                            id="photoURL"
+                            placeholder="Enter image URL (optional)"
+                            class="profile-input"
+                        >
+                        <button id="updatePhotoBtn" class="btn-secondary">Update Photo</button>
+                        <p class="form-hint">Tip: Upload an image to a service like Imgur or use a Gravatar URL</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Name Section -->
+            <div class="profile-section">
+                <h2>Display Name</h2>
+                <form id="updateNameForm">
+                    <input
+                        type="text"
+                        id="displayName"
+                        placeholder="Your display name"
+                        required
+                        class="profile-input"
+                    >
+                    <button type="submit" class="btn-primary">Update Name</button>
+                    <p id="name-success" class="success-text" style="display: none;">Name updated successfully!</p>
+                    <p id="name-error" class="error-message"></p>
+                </form>
+            </div>
+
+            <!-- Change Password Section -->
+            <div class="profile-section">
+                <h2>Change Password</h2>
+                <form id="changePasswordForm">
+                    <input
+                        type="password"
+                        id="currentPassword"
+                        placeholder="Current password"
+                        required
+                        class="profile-input"
+                        autocomplete="current-password"
+                    >
+                    <input
+                        type="password"
+                        id="newPassword"
+                        placeholder="New password (min 6 characters)"
+                        required
+                        minlength="6"
+                        class="profile-input"
+                        autocomplete="new-password"
+                    >
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        placeholder="Confirm new password"
+                        required
+                        minlength="6"
+                        class="profile-input"
+                        autocomplete="new-password"
+                    >
+                    <button type="submit" class="btn-primary">Change Password</button>
+                    <p id="password-success" class="success-text" style="display: none;">Password changed successfully!</p>
+                    <p id="password-error" class="error-message"></p>
+                </form>
+            </div>
+
+            <!-- Account Info Section -->
+            <div class="profile-section">
+                <h2>Account Information</h2>
+                <div class="account-info">
+                    <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                    <p><strong>Member since:</strong> <span id="memberSince"></span></p>
+                </div>
+            </div>
+
+            <!-- Logout Section -->
+            <div class="profile-section">
+                <button id="logoutBtn" class="btn-secondary btn-logout">Log Out</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Philosophical Discussions. A space for friends to think together.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="profile.js"></script>
+</body>
+</html>

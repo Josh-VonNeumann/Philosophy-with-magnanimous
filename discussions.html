@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philosophical Discussions</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Philosophical Discussions</h1>
+            <p class="tagline">Exploring ideas, questions, and the nature of existence</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <nav class="discussions-nav">
+            <a href="admin.html" class="btn-create-post" style="display: none;">+ Create New Discussion</a>
+            <!-- User menu will be inserted here by JavaScript -->
+        </nav>
+
+        <div id="dynamicDiscussions"></div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Philosophical Discussions. A space for friends to think together.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="discussions.js"></script>
+    <script src="giscus-config.js"></script>
+</body>
+</html>
